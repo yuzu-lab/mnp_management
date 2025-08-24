@@ -7,107 +7,118 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div class="container">
-    <h1>MNP管理ツール（参考実装）</h1>
-    <p class="sub">ブラウザだけで動くオフライン管理アプリ。データは <strong>ローカルストレージ</strong> に保存されます（外部送信なし）。</p>
+  <!-- パスワード画面 -->
+  <div id="loginScreen" class="container">
+    <h1>パスワード入力</h1>
+    <input type="password" id="passwordInput" placeholder="パスワードを入力">
+    <button id="loginBtn">ログイン</button>
+    <p id="loginHint" class="hint"></p>
+  </div>
 
-    <!-- 入力フォームと設定 -->
-    <div class="split">
-      <section class="card" aria-labelledby="formTitle">
-        <h2 id="formTitle" style="margin-top:0">新規／編集 入力</h2>
-        <form id="entryForm" class="grid cols-6" autocomplete="off">
-          <input type="hidden" id="id" />
-          <div class="col"><label for="contractDate">契約日</label><input type="date" id="contractDate" required /></div>
-          <div class="col"><label for="phone">電話番号（任意）</label><input type="text" id="phone" placeholder="090-xxxx-xxxx" /></div>
-          <div class="col"><label for="carrier">キャリア</label>
-            <select id="carrier">
-              <option>docomo</option><option>au</option><option>SoftBank</option><option>Rakuten</option><option>その他</option>
-            </select>
-          </div>
-          <div class="col"><label for="device">端末名（任意）</label><input type="text" id="device" placeholder="iPhone 15 等" /></div>
-          <div class="col"><label for="deviceCost">端末購入代</label><input type="number" id="deviceCost" inputmode="numeric" value="0" /></div>
-          <div class="col"><label for="cashback">キャッシュバック</label><input type="number" id="cashback" inputmode="numeric" value="0" /></div>
-          <div class="col"><label for="resale">端末売却額</label><input type="number" id="resale" inputmode="numeric" value="0" /></div>
-          <div class="col"><label for="referral">紹介料（合計）</label><input type="number" id="referral" inputmode="numeric" value="0" /></div>
-          <div class="col"><label for="monthly">月額維持費</label><input type="number" id="monthly" inputmode="numeric" value="0" /></div>
-          <div class="col"><label for="months">月数</label><input type="number" id="months" inputmode="numeric" value="0" /></div>
-          <div class="col"><label for="extras">その他費用</label><input type="number" id="extras" inputmode="numeric" value="0" /></div>
-          <div class="col"><label for="status">契約状況</label>
-            <select id="status"><option value="active">契約中</option><option value="cancelled">解約済み</option></select>
-          </div>
-          <div class="col"><label for="cancelDate">解約日（任意）</label><input type="date" id="cancelDate" /></div>
-          <div class="col" style="grid-column:1/-1"><label for="memo">メモ</label><textarea id="memo" placeholder="注意点、オプション、下取り など"></textarea></div>
-          <div class="row" style="grid-column:1/-1;justify-content:flex-end">
-            <button type="button" class="btn warn" id="resetBtn">クリア</button>
-            <button type="submit" class="btn primary" id="saveBtn">保存</button>
-          </div>
-          <div style="grid-column:1/-1" class="hint">※ 実質利益 = （キャッシュバック + 売却額） − （端末購入代 + 月額維持費×月数 + その他費用 + 紹介料）</div>
-        </form>
-      </section>
+  <!-- 本体フォーム（最初は非表示） -->
+  <div id="mainApp" style="display:none;">
+    <div class="container">
+      <h1>MNP管理ツール（参考実装）</h1>
+      <p class="sub">ブラウザだけで動くオフライン管理アプリ。データは <strong>ローカルストレージ</strong> に保存されます（外部送信なし）。</p>
 
-      <section class="card" aria-labelledby="settingsTitle">
-        <h2 id="settingsTitle" style="margin-top:0">設定・バックアップ</h2>
-        <details class="settings" open>
-          <summary>転出可能日のルール（日数）</summary>
-          <div class="grid cols-3" style="margin-top:10px">
-            <div><label for="ruleDocomo">docomo</label><input type="number" id="ruleDocomo" value="182" /></div>
-            <div><label for="ruleAu">au / UQ</label><input type="number" id="ruleAu" value="215" /></div>
-            <div><label for="ruleSb">SoftBank / Y!mobile / LINEMO</label><input type="number" id="ruleSb" value="215" /></div>
-            <div><label for="ruleRk">Rakuten</label><input type="number" id="ruleRk" value="215" /></div>
-            <div><label for="ruleOther">その他</label><input type="number" id="ruleOther" value="215" /></div>
+      <!-- 入力フォームと設定 -->
+      <div class="split">
+        <section class="card" aria-labelledby="formTitle">
+          <h2 id="formTitle" style="margin-top:0">新規／編集 入力</h2>
+          <form id="entryForm" class="grid cols-6" autocomplete="off">
+            <input type="hidden" id="id" />
+            <div class="col"><label for="contractDate">契約日</label><input type="date" id="contractDate" required /></div>
+            <div class="col"><label for="phone">電話番号（任意）</label><input type="text" id="phone" placeholder="090-xxxx-xxxx" /></div>
+            <div class="col"><label for="carrier">キャリア</label>
+              <select id="carrier">
+                <option>docomo</option><option>au</option><option>SoftBank</option><option>Rakuten</option><option>その他</option>
+              </select>
+            </div>
+            <div class="col"><label for="device">端末名（任意）</label><input type="text" id="device" placeholder="iPhone 15 等" /></div>
+            <div class="col"><label for="deviceCost">端末購入代</label><input type="number" id="deviceCost" inputmode="numeric" value="0" /></div>
+            <div class="col"><label for="cashback">キャッシュバック</label><input type="number" id="cashback" inputmode="numeric" value="0" /></div>
+            <div class="col"><label for="resale">端末売却額</label><input type="number" id="resale" inputmode="numeric" value="0" /></div>
+            <div class="col"><label for="referral">紹介料（合計）</label><input type="number" id="referral" inputmode="numeric" value="0" /></div>
+            <div class="col"><label for="monthly">月額維持費</label><input type="number" id="monthly" inputmode="numeric" value="0" /></div>
+            <div class="col"><label for="months">月数</label><input type="number" id="months" inputmode="numeric" value="0" /></div>
+            <div class="col"><label for="extras">その他費用</label><input type="number" id="extras" inputmode="numeric" value="0" /></div>
+            <div class="col"><label for="status">契約状況</label>
+              <select id="status"><option value="active">契約中</option><option value="cancelled">解約済み</option></select>
+            </div>
+            <div class="col"><label for="cancelDate">解約日（任意）</label><input type="date" id="cancelDate" /></div>
+            <div class="col" style="grid-column:1/-1"><label for="memo">メモ</label><textarea id="memo" placeholder="注意点、オプション、下取り など"></textarea></div>
+            <div class="row" style="grid-column:1/-1;justify-content:flex-end">
+              <button type="button" class="btn warn" id="resetBtn">クリア</button>
+              <button type="submit" class="btn primary" id="saveBtn">保存</button>
+            </div>
+            <div style="grid-column:1/-1" class="hint">※ 実質利益 = （キャッシュバック + 売却額） − （端末購入代 + 月額維持費×月数 + その他費用 + 紹介料）</div>
+          </form>
+        </section>
+
+        <section class="card" aria-labelledby="settingsTitle">
+          <h2 id="settingsTitle" style="margin-top:0">設定・バックアップ</h2>
+          <details class="settings" open>
+            <summary>転出可能日のルール（日数）</summary>
+            <div class="grid cols-3" style="margin-top:10px">
+              <div><label for="ruleDocomo">docomo</label><input type="number" id="ruleDocomo" value="182" /></div>
+              <div><label for="ruleAu">au / UQ</label><input type="number" id="ruleAu" value="215" /></div>
+              <div><label for="ruleSb">SoftBank / Y!mobile / LINEMO</label><input type="number" id="ruleSb" value="215" /></div>
+              <div><label for="ruleRk">Rakuten</label><input type="number" id="ruleRk" value="215" /></div>
+              <div><label for="ruleOther">その他</label><input type="number" id="ruleOther" value="215" /></div>
+            </div>
+          </details>
+
+          <div style="height:12px"></div>
+          <div class="toolbar">
+            <button class="btn" id="exportCsv">CSV出力</button>
+            <label class="btn" for="importCsvInput">CSVインポート<input id="importCsvInput" type="file" accept=".csv" hidden></label>
+            <button class="btn" id="downloadJson">JSONバックアップ</button>
+            <label class="btn" for="uploadJsonInput">JSON復元<input id="uploadJsonInput" type="file" accept=".json" hidden></label>
+            <button class="btn danger" id="wipeAll">全データ削除</button>
           </div>
-        </details>
-
-        <div style="height:12px"></div>
-        <div class="toolbar">
-          <button class="btn" id="exportCsv">CSV出力</button>
-          <label class="btn" for="importCsvInput">CSVインポート<input id="importCsvInput" type="file" accept=".csv" hidden></label>
-          <button class="btn" id="downloadJson">JSONバックアップ</button>
-          <label class="btn" for="uploadJsonInput">JSON復元<input id="uploadJsonInput" type="file" accept=".json" hidden></label>
-          <button class="btn danger" id="wipeAll">全データ削除</button>
-        </div>
-        <p class="hint">CSVは表計算ソフト向け、JSONはアプリの完全バックアップです。</p>
-      </section>
-    </div>
-
-    <!-- 一覧テーブル -->
-    <section class="card" style="margin-top:16px" aria-labelledby="listTitle">
-      <div class="row" style="justify-content:space-between;align-items:center">
-        <h2 id="listTitle" style="margin:0">契約一覧</h2>
-        <div class="row" style="align-items:center;gap:8px">
-          <input id="search" type="search" placeholder="検索（番号／端末名／キャリア／メモ）" style="min-width:260px" />
-          <select id="filterStatus"><option value="all">すべて</option><option value="active">契約中のみ</option><option value="cancelled">解約済みのみ</option></select>
-        </div>
+          <p class="hint">CSVは表計算ソフト向け、JSONはアプリの完全バックアップです。</p>
+        </section>
       </div>
 
-      <div style="overflow:auto;max-height:50vh;margin-top:10px;border:1px solid var(--border);border-radius:12px">
-        <table id="table">
-          <thead>
-            <tr>
-              <th class="nowrap">操作</th>
-              <th>契約日</th><th>転出可能日</th><th>番号</th><th>キャリア</th><th>端末</th>
-              <th class="right">購入</th><th class="right">CB</th><th class="right">売却</th>
-              <th class="right">紹介</th><th class="right">維持費</th><th class="right">その他</th><th class="right">実質利益</th>
-              <th>状況</th><th>解約日</th><th>メモ</th>
-            </tr>
-          </thead>
-          <tbody></tbody>
-          <tfoot>
-            <tr>
-              <td colspan="6" class="right">合計</td>
-              <td class="right mono" id="sumDevice">0</td><td class="right mono" id="sumCb">0</td>
-              <td class="right mono" id="sumResale">0</td><td class="right mono" id="sumReferral">0</td>
-              <td class="right mono" id="sumKeep">0</td><td class="right mono" id="sumExtras">0</td><td class="right mono" id="sumProfit">0</td>
-              <td colspan="3"></td>
-            </tr>
-          </tfoot>
-        </table>
-      </div>
-      <p class="hint">転出可能日を過ぎて <strong>契約中</strong> の行はハイライト表示されます。</p>
-    </section>
+      <!-- 一覧テーブルなど以下同じ -->
+      <section class="card" style="margin-top:16px" aria-labelledby="listTitle">
+        <div class="row" style="justify-content:space-between;align-items:center">
+          <h2 id="listTitle" style="margin:0">契約一覧</h2>
+          <div class="row" style="align-items:center;gap:8px">
+            <input id="search" type="search" placeholder="検索（番号／端末名／キャリア／メモ）" style="min-width:260px" />
+            <select id="filterStatus"><option value="all">すべて</option><option value="active">契約中のみ</option><option value="cancelled">解約済みのみ</option></select>
+          </div>
+        </div>
+        <div style="overflow:auto;max-height:50vh;margin-top:10px;border:1px solid var(--border);border-radius:12px">
+          <table id="table">
+            <thead>
+              <tr>
+                <th class="nowrap">操作</th>
+                <th>契約日</th><th>転出可能日</th><th>番号</th><th>キャリア</th><th>端末</th>
+                <th class="right">購入</th><th class="right">CB</th><th class="right">売却</th>
+                <th class="right">紹介</th><th class="right">維持費</th><th class="right">その他</th><th class="right">実質利益</th>
+                <th>状況</th><th>解約日</th><th>メモ</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+            <tfoot>
+              <tr>
+                <td colspan="6" class="right">合計</td>
+                <td class="right mono" id="sumDevice">0</td><td class="right mono" id="sumCb">0</td>
+                <td class="right mono" id="sumResale">0</td><td class="right mono" id="sumReferral">0</td>
+                <td class="right mono" id="sumKeep">0</td><td class="right mono" id="sumExtras">0</td><td class="right mono" id="sumProfit">0</td>
+                <td colspan="3"></td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+        <p class="hint">転出可能日を過ぎて <strong>契約中</strong> の行はハイライト表示されます。</p>
+      </section>
 
-    <p class="footer">
-      <script src="app.js"></script>
-      <script src="https://cdn.jsdelivr.net/npm/encoding-japanese@2.0.0/encoding.min.js"></script>
+      <p class="footer">
+        <script src="app.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/encoding-japanese@2.0.0/encoding.min.js"></script>
+  </div>
 </body>
+<script src="login.js"></script>
 </html>
