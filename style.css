@@ -1,0 +1,138 @@
+﻿:root {
+  --bg: #fafafa;
+  --fg: #222;
+  --border: #ddd;
+  --primary: #1976d2;
+  --primary-text: #fff;
+  --danger: #d32f2f;
+  --warn: #f57c00;
+  --card-bg: #fff;
+  --highlight: #fff3cd;
+}
+
+body {
+  font-family: system-ui, sans-serif;
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--fg);
+  line-height: 1.5;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 16px;
+}
+
+h1, h2 {
+  font-weight: 600;
+}
+
+h1 {
+  font-size: 1.6rem;
+  margin: 0 0 0.2em 0;
+}
+
+.sub {
+  margin: 0 0 1em 0;
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.card {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+.split {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+.split .card {
+  flex: 1 1 360px;
+}
+
+.grid {
+  display: grid;
+  gap: 8px 12px;
+}
+.cols-6 { grid-template-columns: repeat(6, 1fr); }
+.cols-3 { grid-template-columns: repeat(3, 1fr); }
+
+.col { display: flex; flex-direction: column; }
+.row { display: flex; flex-direction: row; gap: 8px; }
+
+label {
+  font-size: 0.8rem;
+  margin-bottom: 2px;
+}
+
+input, select, textarea, button {
+  font-family: inherit;
+  font-size: 0.9rem;
+}
+
+input, select, textarea {
+  padding: 4px 6px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: #fff;
+}
+
+textarea {
+  resize: vertical;
+  min-height: 3em;
+}
+
+button {
+  border: none;
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-weight: 600;
+  transition: background 0.2s;
+}
+button.btn { background: #eee; }
+button.primary { background: var(--primary); color: var(--primary-text); }
+button.warn { background: var(--warn); color: #fff; }
+button.danger { background: var(--danger); color: #fff; }
+button:hover { opacity: 0.85; cursor: pointer; }
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+th, td {
+  border: 1px solid var(--border);
+  padding: 4px 6px;
+  vertical-align: middle;
+}
+th { background: #f0f0f0; }
+td.right, th.right { text-align: right; }
+td.mono { font-family: monospace; }
+td.nowrap { white-space: nowrap; }
+
+tfoot td {
+  font-weight: bold;
+  background: #f9f9f9;
+}
+
+tr.highlight { background: var(--highlight); }
+
+.hint {
+  font-size: 0.75rem;
+  color: #555;
+}
+
+.footer {
+  margin-top: 24px;
+  font-size: 0.75rem;
+  color: #888;
+  text-align: center;
+}
