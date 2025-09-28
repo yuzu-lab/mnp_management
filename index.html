@@ -1,15 +1,36 @@
-﻿<!doctype html>
+﻿<!--
+=====================================================
+MNP管理ツール ver1.0
+Copyright (c) 2025 yuzu (@yuzuuuuyyzz)
+
+【重要】Note購入者限定ツール - 利用規約厳守
+⚠️ パスワード共有・拡散・改変・転売 厳禁 ⚠️
+
+1. 本ツールはNote購入者本人のみ利用可能です
+2. パスワードの第三者共有は即座にアクセス停止となります
+3. スクリーンショット・画面録画での拡散を禁止します
+4. ソースコード解析・改変・再配布を禁止します
+5. 規約違反は法的措置の対象となります
+6. データ損失・誤動作等の責任は負いません
+7. 詳細な利用規約はLICENSE.mdをご確認ください
+
+技術的保護措置：アクセスログ記録・不正検知システム稼働中
+開発者：yuzu (@yuzuuuuyyzz)
+最終更新：2025年9月28日
+=====================================================
+-->
+<!doctype html>
 <html lang="ja">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>MNP管理ツール（参考実装）</title>
+  <title>MNP管理ツール ver1.0 @yuzuuuuyyzz - Note購入者限定</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <!-- パスワード画面 -->
   <div id="loginScreen" class="container">
-    <h1>パスワード入力</h1>
+    <h1>MNP管理ツール - パスワード入力</h1>
     <input type="password" id="passwordInput" placeholder="パスワードを入力">
     <button id="loginBtn">ログイン</button>
     <p id="loginHint" class="hint"></p>
@@ -18,8 +39,8 @@
   <!-- 本体フォーム（最初は非表示） -->
   <div id="mainApp" style="display:none;">
     <div class="container">
-      <h1>MNP管理ツール（参考実装）</h1>
-      <p class="sub">ブラウザだけで動くオフライン管理アプリ。データは <strong>ローカルストレージ</strong> に保存されます（外部送信なし）。</p>
+      <h1>MNP管理ツール ver1.0 @yuzuuuuyyzz</h1>
+      <p class="sub">Note購入者限定ツール｜データはローカル保存で安全｜利用規約厳守</p>
 
       <!-- 入力フォームと設定 -->
       <div class="split">
@@ -31,11 +52,26 @@
             <div class="col"><label for="phone">電話番号（任意）</label><input type="text" id="phone" placeholder="090-xxxx-xxxx" /></div>
             <div class="col"><label for="carrier">キャリア</label>
               <select id="carrier">
-                <option>docomo</option><option>au</option><option>SoftBank</option><option>Rakuten</option><option>その他</option>
+                <option>docomo</option>
+                <option>ahamo</option>
+                <option>au</option>
+                <option>UQmobile</option>
+                <option>SoftBank</option>
+                <option>Ymobile</option>
+                <option>Rakuten</option>
+                <option>日本通信</option>
+                <option>mineo</option>
+                <option>IIJmio</option>
+                <option>イオンモバイル</option>
+                <option>povo</option>
+                <option>その他</option>
               </select>
             </div>
+            <div class="col"><label for="shop">購入店舗（代理店/担当者）</label><input type="text" id="shop" placeholder="〇〇店 担当：△△" /></div>
             <div class="col"><label for="device">端末名（任意）</label><input type="text" id="device" placeholder="iPhone 15 等" /></div>
-            <div class="col"><label for="deviceCost">端末購入代</label><input type="number" id="deviceCost" inputmode="numeric" value="0" /></div>
+            <div class="col"><label for="deviceCost">端末購入代（一括）</label><input type="number" id="deviceCost" inputmode="numeric" value="0" /></div>
+            <div class="col"><label for="deviceCostInstallment">端末購入代（分割）</label><input type="number" id="deviceCostInstallment" inputmode="numeric" value="0" /></div>
+            <div class="col"><label for="firstMonthCost">初月費用</label><input type="number" id="firstMonthCost" inputmode="numeric" value="0" /></div>
             <div class="col"><label for="cashback">キャッシュバック</label><input type="number" id="cashback" inputmode="numeric" value="0" /></div>
             <div class="col"><label for="resale">端末売却額</label><input type="number" id="resale" inputmode="numeric" value="0" /></div>
             <div class="col"><label for="referral">紹介料（合計）</label><input type="number" id="referral" inputmode="numeric" value="0" /></div>
@@ -46,12 +82,12 @@
               <select id="status"><option value="active">契約中</option><option value="cancelled">解約済み</option></select>
             </div>
             <div class="col"><label for="cancelDate">解約日（任意）</label><input type="date" id="cancelDate" /></div>
-            <div class="col" style="grid-column:1/-1"><label for="memo">メモ</label><textarea id="memo" placeholder="注意点、オプション、下取り など"></textarea></div>
+            <div class="col" style="grid-column:1/-1"><label for="memo">メモ</label><textarea id="memo" placeholder="契約時の注意点、オプション内容、下取りの条件、分割払いの条件、端末返却プログラムの詳細 など"></textarea></div>
             <div class="row" style="grid-column:1/-1;justify-content:flex-end">
               <button type="button" class="btn warn" id="resetBtn">クリア</button>
               <button type="submit" class="btn primary" id="saveBtn">保存</button>
             </div>
-            <div style="grid-column:1/-1" class="hint">※ 実質利益 = （キャッシュバック + 売却額） − （端末購入代 + 月額維持費×月数 + その他費用 + 紹介料）</div>
+            <div style="grid-column:1/-1" class="hint">※ 実質利益 = （キャッシュバック + 売却額） − （初月費用 + 端末購入代(一括) + 端末購入代(分割)×月数 + 月額維持費×(月数-1) + その他費用 + 紹介料）</div>
           </form>
         </section>
 
@@ -63,20 +99,16 @@
               <div><label for="ruleDocomo">docomo</label><input type="number" id="ruleDocomo" value="182" /></div>
               <div><label for="ruleAu">au / UQ</label><input type="number" id="ruleAu" value="215" /></div>
               <div><label for="ruleSb">SoftBank / Y!mobile / LINEMO</label><input type="number" id="ruleSb" value="215" /></div>
-              <div><label for="ruleRk">Rakuten</label><input type="number" id="ruleRk" value="215" /></div>
+              <div><label for="ruleRk">Rakuten</label><input type="number" id="ruleRk" value="0" /></div>
+              <div><label for="ruleJci">日本通信</label><input type="number" id="ruleJci" value="0" /></div>
+              <div><label for="ruleMineo">mineo</label><input type="number" id="ruleMineo" value="0" /></div>
+              <div><label for="ruleIij">IIJmio</label><input type="number" id="ruleIij" value="366" /></div>
+              <div><label for="ruleAeon">イオンモバイル</label><input type="number" id="ruleAeon" value="0" /></div>
+              <div><label for="rulePovo">povo</label><input type="number" id="rulePovo" value="0" /></div>
               <div><label for="ruleOther">その他</label><input type="number" id="ruleOther" value="215" /></div>
             </div>
           </details>
 
-          <div style="height:12px"></div>
-          <div class="toolbar">
-            <button class="btn" id="exportCsv">CSV出力</button>
-            <label class="btn" for="importCsvInput">CSVインポート<input id="importCsvInput" type="file" accept=".csv" hidden></label>
-            <button class="btn" id="downloadJson">JSONバックアップ</button>
-            <label class="btn" for="uploadJsonInput">JSON復元<input id="uploadJsonInput" type="file" accept=".json" hidden></label>
-            <button class="btn danger" id="wipeAll">全データ削除</button>
-          </div>
-          <p class="hint">CSVは表計算ソフト向け、JSONはアプリの完全バックアップです。</p>
         </section>
       </div>
 
@@ -85,29 +117,49 @@
         <div class="row" style="justify-content:space-between;align-items:center">
           <h2 id="listTitle" style="margin:0">契約一覧</h2>
           <div class="row" style="align-items:center;gap:8px">
-            <input id="search" type="search" placeholder="検索（番号／端末名／キャリア／メモ）" style="min-width:260px" />
+            <input id="search" type="search" placeholder="検索（番号／端末名／キャリア／店舗／メモ）" style="min-width:260px" />
             <select id="filterStatus"><option value="all">すべて</option><option value="active">契約中のみ</option><option value="cancelled">解約済みのみ</option></select>
           </div>
         </div>
-        <div style="overflow:auto;max-height:50vh;margin-top:10px;border:1px solid var(--border);border-radius:12px">
+        <div style="margin:12px 0" class="row">
+          <div class="toolbar" style="margin-right:auto">
+            <div class="btn-group">
+              <button class="btn" id="exportCsv">CSV出力</button>
+              <button class="btn warn" onclick="document.getElementById('importCsvInput').click()">CSVインポート</button>
+              <input id="importCsvInput" type="file" accept=".csv" hidden>
+              <button class="btn" id="downloadJson">JSONバックアップ</button>
+              <button class="btn warn" onclick="document.getElementById('uploadJsonInput').click()">JSON復元</button>
+              <input id="uploadJsonInput" type="file" accept=".json" hidden>
+              <button class="btn danger" id="wipeAll">全データ削除</button>
+            </div>
+          </div>
+          <p class="hint" style="margin:auto 0">CSVは表計算ソフト向け、JSONはアプリの完全バックアップです。</p>
+        </div>
+        <div id="table-container" style="overflow:auto;max-height:50vh;margin-top:10px;border:1px solid var(--border);border-radius:12px">
           <table id="table">
             <thead>
               <tr>
-                <th class="nowrap">操作</th>
-                <th>契約日</th><th>転出可能日</th><th>番号</th><th>キャリア</th><th>端末</th>
-                <th class="right">購入</th><th class="right">CB</th><th class="right">売却</th>
+                <th>操作</th>
+                <th>契約日</th><th>転出可能日</th><th>番号</th><th>キャリア</th><th>店舗</th><th>端末</th>
+                <th class="right">購入(一括)</th><th class="right">購入(分割)</th><th class="right">初月費用</th><th class="right">CB</th><th class="right">売却</th>
                 <th class="right">紹介</th><th class="right">維持費</th><th class="right">その他</th><th class="right">実質利益</th>
-                <th>状況</th><th>解約日</th><th>メモ</th>
+                <th>状況</th><th>解約日</th><th>返却予定</th><th>メモ</th>
               </tr>
             </thead>
             <tbody></tbody>
             <tfoot>
               <tr>
-                <td colspan="6" class="right">合計</td>
-                <td class="right mono" id="sumDevice">0</td><td class="right mono" id="sumCb">0</td>
-                <td class="right mono" id="sumResale">0</td><td class="right mono" id="sumReferral">0</td>
-                <td class="right mono" id="sumKeep">0</td><td class="right mono" id="sumExtras">0</td><td class="right mono" id="sumProfit">0</td>
-                <td colspan="3"></td>
+                <td colspan="7" class="right">合計</td>
+                <td class="right mono" id="sumDevice">0</td>
+                <td class="right mono" id="sumDeviceInstallment">0</td>
+                <td class="right mono" id="sumFirstMonth">0</td>
+                <td class="right mono" id="sumCb">0</td>
+                <td class="right mono" id="sumResale">0</td>
+                <td class="right mono" id="sumReferral">0</td>
+                <td class="right mono" id="sumKeep">0</td>
+                <td class="right mono" id="sumExtras">0</td>
+                <td class="right mono" id="sumProfit">0</td>
+                <td colspan="4"></td>
               </tr>
             </tfoot>
           </table>
