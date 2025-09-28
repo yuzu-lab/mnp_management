@@ -1,4 +1,20 @@
-﻿// データ保存先キー
+﻿/*!
+ * MNP Management Tool
+ * (c) 2025 yuzu (@yuzuuuuyyzz)
+ * Created: 2025-08-29
+ * Watermark: MNP-${Math.random().toString(36).substr(2,9)}-${Date.now()}
+ * All rights reserved.
+ * Instance: ${btoa(Date.now() + Math.random()).slice(0,12)}
+ */
+
+// 盗用防止強化：複数箇所にランダム透かし埋め込み
+const watermarks = [
+  `MNP-${btoa(Date.now() + Math.random()).slice(0,12)}`,
+  `yuzu-${Date.now().toString(36)}`,
+  `tool-${Math.random().toString(36).substr(2,9)}`
+];
+
+// データ保存先キー
 const STORAGE_KEY = "mnp_entries";
 
 // 転出可能日ルール
@@ -7,6 +23,11 @@ let rules = {
   au: 215,
   sb: 215,
   rk: 215,
+  jci: 0,     // 日本通信
+  mineo: 0,   // mineo
+  iij: 0,     // IIJmio
+  aeon: 0,    // イオンモバイル
+  povo: 0,    // povo
   other: 215,
 };
 
@@ -28,11 +49,35 @@ const ruleInputs = {
   au: document.getElementById("ruleAu"),
   sb: document.getElementById("ruleSb"),
   rk: document.getElementById("ruleRk"),
+  jci: document.getElementById("ruleJci"),
+  mineo: document.getElementById("ruleMineo"),
+  iij: document.getElementById("ruleIij"),
+  aeon: document.getElementById("ruleAeon"),
+  povo: document.getElementById("rulePovo"),
   other: document.getElementById("ruleOther"),
 };
 
 // データ管理
 let entries = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+
+// 盗用防止：ローカルストレージにも透かし
+const originalSetItem = localStorage.setItem;
+localStorage.setItem = function(key, value) {
+  if (key === STORAGE_KEY) {
+    try {
+      const data = JSON.parse(value);
+      data._meta = {
+        tool: "yuzu_mnp_manager",
+        created: Date.now(),
+        id: watermarks[0]
+      };
+      value = JSON.stringify(data);
+    } catch(e) {
+      // JSONパースエラー時はそのまま保存
+    }
+  }
+  return originalSetItem.call(this, key, value);
+};
 
 // 保存
 function save() {
@@ -41,19 +86,34 @@ function save() {
 
 // 実質利益計算
 function calcProfit(e) {
+  const months = Number(e.months);
   return (Number(e.cashback) + Number(e.resale)) -
-    (Number(e.deviceCost) + (Number(e.monthly) * Number(e.months)) + Number(e.extras) + Number(e.referral));
+    (Number(e.firstMonthCost) + 
+     Number(e.deviceCost) + 
+     (Number(e.deviceCostInstallment) * months) + 
+     (Number(e.monthly) * (months > 0 ? months - 1 : 0)) + 
+     Number(e.extras) + 
+     Number(e.referral));
 }
 
 // 転出可能日
 function calcTransferDate(e) {
   const base = new Date(e.contractDate);
   if (isNaN(base)) return "";
+  
   let days = rules.other;
-  if (e.carrier.includes("docomo")) days = rules.docomo;
-  else if (e.carrier.includes("au") || e.carrier.includes("UQ")) days = rules.au;
-  else if (e.carrier.includes("Soft") || e.carrier.includes("Y!") || e.carrier.includes("LINE")) days = rules.sb;
-  else if (e.carrier.includes("Rakuten")) days = rules.rk;
+  const carrier = e.carrier.toLowerCase();
+  
+  if (carrier.includes("docomo") || carrier.includes("ahamo")) days = rules.docomo;
+  else if (carrier.includes("au") || carrier.includes("uq")) days = rules.au;
+  else if (carrier.includes("soft") || carrier.includes("y") || carrier.includes("line")) days = rules.sb;
+  else if (carrier.includes("rakuten")) days = rules.rk;
+  else if (carrier.includes("日本通信")) days = rules.jci;
+  else if (carrier.includes("mineo")) days = rules.mineo;
+  else if (carrier.includes("iij")) days = rules.iij;
+  else if (carrier.includes("イオン") || carrier.includes("aeon")) days = rules.aeon;
+  else if (carrier.includes("povo")) days = rules.povo;
+  
   const d = new Date(base);
   d.setDate(d.getDate() + Number(days));
   return d.toISOString().split("T")[0];
@@ -65,22 +125,24 @@ function render() {
   const q = searchInput.value.toLowerCase();
   const fs = filterStatus.value;
 
-  let sum = { device:0, cb:0, resale:0, referral:0, keep:0, extras:0, profit:0 };
+  let sum = { device:0, deviceInstallment:0, firstMonth:0, cb:0, resale:0, referral:0, keep:0, extras:0, profit:0 };
 
   entries.forEach((e, idx) => {
     // フィルタ
     if (fs !== "all" && e.status !== fs) return;
-    if (q && !(String(e.phone)+String(e.device)+String(e.carrier)+String(e.memo)).toLowerCase().includes(q)) return;
+    if (q && !(String(e.phone)+String(e.device)+String(e.carrier)+String(e.shop)+String(e.memo)).toLowerCase().includes(q)) return;
 
     const profit = calcProfit(e);
     const transferDate = calcTransferDate(e);
 
     sum.device += Number(e.deviceCost);
+    sum.deviceInstallment += Number(e.deviceCostInstallment);
+    sum.firstMonth += Number(e.firstMonthCost);
     sum.cb += Number(e.cashback);
     sum.resale += Number(e.resale);
     sum.referral += Number(e.referral);
-    sum.keep += Number(e.monthly) * Number(e.months);
-    sum.extras += Number(e.extras);
+    sum.keep += e.monthly * (e.months > 0 ? e.months - 1 : 0);
+    sum.extras += e.extras;
     sum.profit += profit;
 
     const tr = document.createElement("tr");
@@ -96,28 +158,39 @@ function render() {
       <td>${transferDate||""}</td>
       <td>${e.phone||""}</td>
       <td>${e.carrier||""}</td>
+      <td>${e.shop||""}</td>
       <td>${e.device||""}</td>
-      <td class="right mono">${e.deviceCost}</td>
-      <td class="right mono">${e.cashback}</td>
-      <td class="right mono">${e.resale}</td>
-      <td class="right mono">${e.referral}</td>
-      <td class="right mono">${Number(e.monthly) * Number(e.months)}</td>
-      <td class="right mono">${e.extras}</td>
+      <td class="right mono">${e.deviceCost||0}</td>
+      <td class="right mono">${e.deviceCostInstallment||0}</td>
+      <td class="right mono">${e.firstMonthCost||0}</td>
+      <td class="right mono">${e.cashback||0}</td>
+      <td class="right mono">${e.resale||0}</td>
+      <td class="right mono">${e.referral||0}</td>
+      <td class="right mono">${e.monthly * (e.months > 0 ? e.months - 1 : 0)}</td>
+      <td class="right mono">${e.extras||0}</td>
       <td class="right mono">${profit}</td>
       <td>${e.status}</td>
       <td>${e.cancelDate||""}</td>
+      <td>${e.returnDate||""}</td>
       <td>${e.memo||""}</td>
     `;
     tableBody.appendChild(tr);
   });
 
-  document.getElementById("sumDevice").textContent = sum.device;
-  document.getElementById("sumCb").textContent = sum.cb;
-  document.getElementById("sumResale").textContent = sum.resale;
-  document.getElementById("sumReferral").textContent = sum.referral;
-  document.getElementById("sumKeep").textContent = sum.keep;
-  document.getElementById("sumExtras").textContent = sum.extras;
-  document.getElementById("sumProfit").textContent = sum.profit;
+  const updateElement = (id, value) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = value;
+  };
+
+  updateElement("sumDevice", sum.device);
+  updateElement("sumDeviceInstallment", sum.deviceInstallment);
+  updateElement("sumFirstMonth", sum.firstMonth);
+  updateElement("sumCb", sum.cb);
+  updateElement("sumResale", sum.resale);
+  updateElement("sumReferral", sum.referral);
+  updateElement("sumKeep", sum.keep);
+  updateElement("sumExtras", sum.extras);
+  updateElement("sumProfit", sum.profit);
 }
 
 // 編集
@@ -143,8 +216,9 @@ window.deleteEntry = (i) => {
 form.addEventListener("submit", ev => {
   ev.preventDefault();
   const obj = {};
-  ["id","contractDate","phone","carrier","device","deviceCost","cashback","resale","referral","monthly","months","extras","status","cancelDate","memo"].forEach(id=>{
-    obj[id] = document.getElementById(id).value;
+  ["id","contractDate","phone","carrier","shop","device","deviceCost","deviceCostInstallment","firstMonthCost","cashback","resale","referral","monthly","months","extras","status","cancelDate","returnDate","memo"].forEach(id=>{
+    const el = document.getElementById(id);
+    if (el) obj[id] = el.value;
   });
 
   // idを数値化、新規はnull
@@ -152,9 +226,18 @@ form.addEventListener("submit", ev => {
   delete obj.id;
 
   // 数値変換
-  ["deviceCost","cashback","resale","referral","monthly","months","extras"].forEach(f=>{
+  ["deviceCost","deviceCostInstallment","firstMonthCost","cashback","resale","referral","monthly","months","extras"].forEach(f=>{
     obj[f] = Number(obj[f]) || 0;
   });
+
+  // 数値項目の型変換とバリデーション
+  ["deviceCost","deviceCostInstallment","firstMonthCost","cashback","resale","referral","monthly","months","extras"].forEach(f=>{
+    obj[f] = Number(obj[f]) || 0;
+    // 月数がマイナスにならないように
+    if (f === 'months' && obj[f] < 0) obj[f] = 0;
+  });
+
+  console.log("保存するデータ:", obj); // デバッグ用
 
   if (idVal === null) {
     entries.push(obj);
@@ -178,9 +261,9 @@ resetBtn.addEventListener("click", ()=>{
 
 // CSV出力（Excelで文字化けしないようShift_JISに変換）
 exportCsvBtn.addEventListener("click", () => {
-  let csv = "契約日,転出可能日,番号,キャリア,端末,購入,CB,売却,紹介,維持費合計,その他,実質利益,状況,解約日,メモ\n";
+  let csv = "契約日,転出可能日,番号,キャリア,店舗,端末,購入(一括),購入(分割),初月費用,CB,売却,紹介,維持費合計,その他,実質利益,状況,解約日,返却予定,メモ\n";
   entries.forEach(e => {
-    csv += `${e.contractDate},${calcTransferDate(e)},${e.phone},${e.carrier},${e.device},${e.deviceCost},${e.cashback},${e.resale},${e.referral},${Number(e.monthly)*Number(e.months)},${e.extras},${calcProfit(e)},${e.status},${e.cancelDate},${e.memo}\n`;
+    csv += `${e.contractDate},${calcTransferDate(e)},${e.phone},${e.carrier},${e.shop},${e.device},${e.deviceCost},${e.deviceCostInstallment},${e.firstMonthCost},${e.cashback},${e.resale},${e.referral},${Number(e.monthly)*(Number(e.months)>0?Number(e.months)-1:0)},${e.extras},${calcProfit(e)},${e.status},${e.cancelDate},${e.returnDate},${e.memo}\n`;
   });
 
   // UTF-8 → Shift_JIS に変換
@@ -209,12 +292,47 @@ importCsvInput.addEventListener("change", ev=>{
     const lines = text.split(/\r?\n/).slice(1);
     lines.forEach(line=>{
       if(!line.trim()) return;
-      const [contractDate,,phone,carrier,device,deviceCost,cashback,resale,referral,keep,extras,,status,cancelDate,memo] = line.split(",");
+      const [
+        contractDate,      // 契約日
+        _transferDate,     // 転出可能日（計算値なので無視）
+        phone,            // 番号
+        carrier,          // キャリア
+        shop,             // 店舗
+        device,           // 端末
+        deviceCost,       // 購入(一括)
+        deviceCostInstallment, // 購入(分割)
+        firstMonthCost,   // 初月費用
+        cashback,         // CB
+        resale,           // 売却
+        referral,         // 紹介
+        _keep,            // 維持費合計（計算値なので無視）
+        extras,           // その他
+        _profit,          // 実質利益（計算値なので無視）
+        status,           // 状況
+        cancelDate,       // 解約日
+        returnDate,       // 返却予定
+        memo             // メモ
+      ] = line.split(",");
+      
       entries.push({
-        contractDate, phone, carrier, device,
-        deviceCost, cashback, resale, referral,
-        monthly: 0, months: 0,
-        extras, status, cancelDate, memo
+        contractDate,
+        phone,
+        carrier,
+        shop,
+        device,
+        deviceCost: Number(deviceCost) || 0,
+        deviceCostInstallment: Number(deviceCostInstallment) || 0,
+        firstMonthCost: Number(firstMonthCost) || 0,
+        cashback: Number(cashback) || 0,
+        resale: Number(resale) || 0,
+        referral: Number(referral) || 0,
+        monthly: 0,
+        months: 0,
+        extras: Number(extras) || 0,
+        status,
+        cancelDate,
+        returnDate,
+        memo
       });
     });
     save(); render();
@@ -261,5 +379,78 @@ Object.keys(ruleInputs).forEach(k=>{
   });
 });
 
+// 盗用防止：HTMLコメントに埋め込み（気づきにくい）
+document.head.insertAdjacentHTML('beforeend', 
+  `<!-- Auth: yuzu@${Date.now()} Instance: ${watermarks[0]} -->`);
+
+// 盗用防止：CSS疑似要素での透かし（見た目に影響なし）
+const styleEl = document.createElement('style');
+styleEl.textContent = `
+  body::before {
+    content: "${watermarks[1]}";
+    position: absolute;
+    left: -9999px;
+    opacity: 0;
+  }
+`;
+document.head.appendChild(styleEl);
+
+// 盗用防止：ダミーコードの挿入（動作に影響なし）
+if (false) {
+  console.log("Dummy code - yuzu watermark protection");
+  const dummyVar = "yuzu_protection_" + Date.now();
+}
+
+// 盗用防止：実行時間をログに記録（使用状況トラッキング）
+console.log(`%cTool initialized by yuzu at ${new Date().toISOString()}
+Instance ID: ${watermarks[2]}
+Browser: ${navigator.userAgent.split(' ')[0]}`, 
+"color: #333; font-size: 10px;");
+
+// 盗用防止：定期的な整合性チェック（改変検知）
+setInterval(() => {
+  const expectedElements = ['entryForm', 'table', 'loginScreen'];
+  const missing = expectedElements.filter(id => !document.getElementById(id));
+  if (missing.length > 0) {
+    console.warn(`Integrity check failed - Missing: ${missing.join(',')}`);
+  }
+}, 30000);
+
+// 盗用防止：右クリック・F12無効化（完全ではないが初心者には効果的）
+document.addEventListener('contextmenu', e => e.preventDefault());
+document.addEventListener('keydown', e => {
+  if (e.key === 'F12' || (e.ctrlKey && e.shiftKey && e.key === 'I')) {
+    e.preventDefault();
+    console.log("Developer tools access attempt logged");
+  }
+});
+
+// 盗用防止：アクセス時間の記録
+window.addEventListener('load', () => {
+  const accessLog = JSON.parse(localStorage.getItem('yuzu_access_log') || '[]');
+  accessLog.push({
+    timestamp: Date.now(),
+    url: location.href,
+    instance: watermarks[0]
+  });
+  // 最新10件のみ保持
+  if (accessLog.length > 10) accessLog.splice(0, accessLog.length - 10);
+  localStorage.setItem('yuzu_access_log', JSON.stringify(accessLog));
+});
+
 // 初期描画
 render();
+
+// 透かし情報をコンソールに埋め込む
+console.log(
+  `%c⚡ MNP Management Tool %c
+開発者向け情報:
+このコードは著作権で保護されています。
+インスタンスID: ${btoa(Date.now())}
+実行環境: ${navigator.userAgent}
+タイムスタンプ: ${new Date().toISOString()}
+Author: yuzu (@yuzu)
+License: Proprietary - Unauthorized use prohibited`,
+  "color: #fff; background: #333; padding: 5px; border-radius: 3px;",
+  "color: #666;"
+);
